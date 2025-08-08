@@ -1,13 +1,18 @@
 import html2canvas from "html2canvas";
 
 export const captureScreenshot = async () => {
-  const feedbackBtn = document.querySelector("#zenbug-feedback-btn");
+  const feedbackBtn = document.getElementById("zenbug-feedback-btn");
+
+  // Hide the button temporarily
   if (feedbackBtn) feedbackBtn.style.display = "none";
 
-  const canvas = await html2canvas(document.body);
-  const dataUrl = canvas.toDataURL("image/png");
+  // Wait a tick to allow DOM to update
+  await new Promise((resolve) => setTimeout(resolve, 50));
 
+  const canvas = await html2canvas(document.body);
+
+  // Restore the button
   if (feedbackBtn) feedbackBtn.style.display = "";
 
-  return dataUrl;
+  return canvas.toDataURL("image/png");
 };

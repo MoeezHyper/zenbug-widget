@@ -239,7 +239,7 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
         <button
           type="button"
           onClick={toggleDrawing}
-          className={`px-3 py-1 rounded text-white ${
+          className={`px-3 py-1 rounded cursor-pointer text-white ${
             drawingMode ? "bg-red-600" : "bg-blue-600"
           }`}
         >
@@ -249,7 +249,7 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
         <button
           type="button"
           onClick={() => setCropMode(!cropMode)}
-          className="px-3 py-1 bg-yellow-500 text-white rounded"
+          className="px-3 py-1 cursor-pointer bg-yellow-500 text-white rounded"
         >
           {cropMode ? "Cancel Crop" : "Crop"}
         </button>
@@ -257,7 +257,7 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
         <button
           type="button"
           onClick={handleClear}
-          className="px-3 py-1 bg-gray-600 text-white rounded"
+          className="px-3 py-1 cursor-pointer bg-gray-600 text-white rounded"
         >
           Clear
         </button>
@@ -268,7 +268,7 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
         <button
           type="button"
           onClick={handleSave}
-          className="px-3 py-1 bg-green-600 text-white rounded"
+          className="px-3 py-1 cursor-pointer bg-green-600 text-white rounded"
         >
           Save & Continue
         </button>
@@ -276,7 +276,7 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-1 bg-red-500 text-white rounded"
+          className="px-3 py-1 cursor-pointer bg-red-500 text-white rounded"
         >
           Cancel
         </button>

@@ -1,9 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { viteSingleFile } from "vite-plugin-singlefile";
+import tailwindcss from "@tailwindcss/vite";
+import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 
 export default defineConfig({
-  plugins: [react(), viteSingleFile()],
+  define: {
+    "process.env": {}, // fixes process undefined error
+  },
+  plugins: [react(), tailwindcss(), cssInjectedByJsPlugin()],
   build: {
     cssCodeSplit: false,
     lib: {
@@ -17,9 +21,5 @@ export default defineConfig({
         entryFileNames: "zenbug.js",
       },
     },
-  },
-  define: {
-    "process.env": "{}",
-    "import.meta.env": "{}",
   },
 });

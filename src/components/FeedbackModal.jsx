@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { uploadScreenshot } from "../utils/uploadScreenshot";
 import { getBrowserMetadata } from "../utils/getBrowserMetadata";
 import ScreenshotEditor from "./ScreenshotEditor";
 
@@ -25,45 +24,49 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
     setLoading(true);
 
     try {
-      let imageUrl;
-      if (screenshot) {
-        imageUrl = await uploadScreenshot(screenshot);
-      }
+      const formData = new FormData();
 
-      const feedback = {
-        title,
-        description,
-        severity,
-        status: "open",
-        metadata: {
+      // Attach plain fields
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("severity", severity);
+      formData.append("status", "open");
+      formData.append(
+        "metadata",
+        JSON.stringify({
           url: window.location.href,
           ...browserInfo,
-        },
-        ...(email.trim() && { email }),
-        ...(imageUrl && { imageUrl }),
-      };
+        })
+      );
+      if (email.trim()) formData.append("email", email);
 
-      const res = await fetch("http://localhost:5000/api/feedback", {
+      // Attach screenshot (convert base64 to Blob)
+      if (screenshot) {
+        const blob = await (await fetch(screenshot)).blob();
+        formData.append("screenshot", blob, `screenshot-${Date.now()}.png`);
+      }
+
+      const apiUrl = "https://zenbug-admin-panel.vercel.app/api";
+      const res = await fetch(`${apiUrl}/feedback`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `ApiKey ${apiKey}`,
         },
-        body: JSON.stringify(feedback),
+        body: formData,
       });
 
       const result = await res.json();
 
       if (!res.ok) throw new Error(result.message || "Submission failed");
 
-      console.log("Submitted:", result);
+      console.log("✅ Submitted:", result);
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
         onClose();
       }, 2000);
     } catch (err) {
-      console.error("Submission error:", err.message);
+      console.error("❌ Submission error:", err.message);
       alert("Failed to submit feedback: " + err.message);
     } finally {
       setLoading(false);
@@ -73,7 +76,10 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex justify-center bg-color-black50 overflow-auto min-h-screen py-8 px-4">
       <div className="bg-color-w w-full max-w-md p-4 sm:p-6 rounded-xl shadow-xl relative self-start">
-        <button onClick={onClose} className="absolute top-2 right-3 text-lg">
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-3 text-lg cursor-pointer scale-150 px-2 text-black"
+        >
           ×
         </button>
 
@@ -91,7 +97,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
           </div>
         )}
 
-        <h2 className="text-lg sm:text-xl font-semibold mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black">
           Submit Feedback
         </h2>
 
@@ -102,21 +108,21 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full p-2 border rounded text-sm sm:text-base"
+            className="w-full p-2 border rounded text-sm sm:text-base text-black placeholder:text-gray-400"
           />
           <textarea
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            className="w-full p-2 border rounded min-h-[100px] text-sm sm:text-base"
+            className="w-full p-2 border rounded min-h-[100px] text-sm sm:text-base text-black placeholder:text-gray-400"
           />
           <input
             type="email"
             placeholder="Email (optional)"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border rounded text-sm sm:text-base"
+            className="w-full p-2 border rounded text-sm sm:text-base text-black placeholder:text-gray-400"
           />
           {email && !/\S+@\S+\.\S+/.test(email) && (
             <p className="text-red-600 text-sm -mt-3">
@@ -126,7 +132,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            className="w-full p-2 border rounded text-sm sm:text-base"
+            className="w-full p-2 border rounded text-sm sm:text-base text-black"
           >
             <option value="low">Low Severity</option>
             <option value="medium">Medium Severity</option>
@@ -145,7 +151,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
           ) : (
             screenshot && (
               <div>
-                <label className="block mb-1 font-medium text-sm sm:text-base">
+                <label className="block mb-1 font-medium text-sm sm:text-base text-black">
                   Screenshot Preview
                 </label>
                 <img
@@ -156,7 +162,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="mt-2 px-3 py-1 bg-gray-200 rounded text-sm border border-gray-400"
+                  className="mt-2 px-3 py-1 bg-gray-200 rounded text-sm border border-gray-400 cursor-pointer text-black"
                 >
                   Edit Screenshot
                 </button>
@@ -179,7 +185,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
           <button
             type="submit"
             disabled={loading || success}
-            className="w-full py-2 rounded text-white submit-button bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
+            className="w-full py-2 rounded text-white submit-button bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base cursor-pointer"
           >
             Submit
           </button>

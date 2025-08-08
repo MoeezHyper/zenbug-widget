@@ -14,7 +14,7 @@ const Widget = ({ apiKey: propKey }) => {
     (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_KEY) ||
     "";
 
-  // 🚫 Don't render the widget if no API key
+  // Don't render the widget if no API key
   if (!API_KEY) {
     console.warn(
       "ZenBug API key is missing. Widget will not render. Provide it via prop, window.ZenBug.apiKey, or VITE_API_KEY."
@@ -47,7 +47,11 @@ const Widget = ({ apiKey: propKey }) => {
         disabled={loading}
         aria-label="Open feedback form"
         title="Report a bug"
-        className="fixed bottom-6 right-6 z-50 feedback-button flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white py-2 px-3 rounded-md shadow-lg"
+        className={`${
+          loading
+            ? "hidden"
+            : "fixed bottom-6 right-6 z-50 feedback-button flex items-center disabled:opacity-50 disabled:cursor-not-allowed bg-black text-white py-2 px-3 rounded-md shadow-lg"
+        }`}
       >
         <img src={bugIcon} alt="bug" className="size-5 mr-1" /> Feedback
       </button>
