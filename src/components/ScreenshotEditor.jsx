@@ -32,16 +32,15 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
       const imgHeight = img.height;
 
       const containerWidth = containerRef.current.offsetWidth;
-      const maxCanvasHeight = 400;
+      const containerHeight = window.innerHeight * 0.8; // 80% of viewport
 
       const scaleX = containerWidth / imgWidth;
-      const scaleY = maxCanvasHeight / imgHeight;
-      const scale = Math.min(scaleX, scaleY, 1);
+      const scaleY = containerHeight / imgHeight;
+      const scale = Math.min(scaleX, scaleY);
 
       const scaledWidth = imgWidth * scale;
       const scaledHeight = imgHeight * scale;
 
-      // Confirm canvas still exists before setting dimensions
       if (!fabricCanvas || !fabricCanvas.getElement()) return;
 
       fabricCanvas.setWidth(scaledWidth);
@@ -233,9 +232,9 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
   };
 
   return (
-    <div className="mb-4">
-      {/* First row */}
-      <div className="mb-2 flex flex-wrap gap-2 justify-center px-4">
+    <div className="mt-3 ml-1 flex flex-col items-center">
+      {/* Top row: Drawing, Crop, Clear */}
+      <div className="mb-4 flex flex-wrap gap-2 justify-center px-4">
         <button
           type="button"
           onClick={toggleDrawing}
@@ -263,8 +262,17 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
         </button>
       </div>
 
-      {/* Second row */}
-      <div className="mb-4 flex gap-2 justify-center">
+      {/* Screenshot Canvas */}
+      <div
+        ref={containerRef}
+        className="w-full flex-1 overflow-hidden flex justify-center rounded-lg border-2 bg-black/5"
+        style={{ maxHeight: "80vh" }}
+      >
+        <canvas ref={canvasRef} className="block" />
+      </div>
+
+      {/* Bottom row: Save, Cancel (and Crop Save if active) */}
+      <div className="mt-4 flex gap-2 justify-center">
         <button
           type="button"
           onClick={handleSave}
@@ -290,14 +298,6 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
             Crop & Save
           </button>
         )}
-      </div>
-
-      {/* Canvas */}
-      <div
-        ref={containerRef}
-        className="w-full max-h-[400px] overflow-hidden rounded flex justify-center border-2"
-      >
-        <canvas ref={canvasRef} className="block" />
       </div>
     </div>
   );

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getBrowserMetadata } from "../utils/getBrowserMetadata";
 import ScreenshotEditor from "./ScreenshotEditor";
 
 const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
+  // Feedback form states
+  const [name, setName] = useState(""); // ✅ New name field
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
@@ -10,23 +12,51 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState("");
 
-  const browserInfo = getBrowserMetadata();
+  // Browser info state + loading flag
+  const [browserInfo, setBrowserInfo] = useState(null);
+  const [browserInfoLoading, setBrowserInfoLoading] = useState(true);
+
+  // Load browser metadata on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const info = await getBrowserMetadata();
+        setBrowserInfo(info);
+      } catch (err) {
+        console.error("Failed to fetch browser metadata:", err);
+        setBrowserInfo({
+          ip: "Unknown",
+          location: "Unknown",
+          browser: "Unknown",
+          os: "Unknown",
+          viewport: `${window.innerWidth}x${window.innerHeight}`,
+        });
+      } finally {
+        setBrowserInfoLoading(false);
+      }
+    })();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (email && !/\S+@\S+\.\S+/.test(email)) {
-      alert("Please enter a valid email address.");
+    if (!title.trim() || !description.trim()) {
+      setError("Title and description are required.");
+      return;
+    }
+
+    if (!screenshot) {
+      setError("Screenshot is required.");
       return;
     }
 
     setLoading(true);
+    setError("");
 
     try {
       const formData = new FormData();
-
-      // Attach plain fields
       formData.append("title", title);
       formData.append("description", description);
       formData.append("severity", severity);
@@ -35,161 +65,225 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
         "metadata",
         JSON.stringify({
           url: window.location.href,
-          ...browserInfo,
+          browser: browserInfo?.browser,
+          os: browserInfo?.os,
+          viewport: browserInfo?.viewport,
+          ip: browserInfo?.ip || "",
+          location: browserInfo?.location || "",
         })
       );
+      if (name.trim()) formData.append("name", name.trim());
       if (email.trim()) formData.append("email", email);
 
-      // Attach screenshot (convert base64 to Blob)
-      if (screenshot) {
-        const blob = await (await fetch(screenshot)).blob();
-        formData.append("screenshot", blob, `screenshot-${Date.now()}.png`);
-      }
+      // Convert screenshot data URL to blob
+      const response = await fetch(screenshot);
+      const blob = await response.blob();
+      formData.append("screenshot", blob, "screenshot.png");
 
-      const apiUrl = "https://zenbug-admin-panel.vercel.app/api";
+      const apiUrl = "http://localhost:5000/api";
       const res = await fetch(`${apiUrl}/feedback`, {
         method: "POST",
-        headers: {
-          Authorization: `ApiKey ${apiKey}`,
-        },
+        headers: { Authorization: `ApiKey ${apiKey}` },
         body: formData,
       });
 
       const result = await res.json();
-
       if (!res.ok) throw new Error(result.message || "Submission failed");
 
-      console.log("✅ Submitted:", result);
+      setLoading(false);
       setSuccess(true);
+
+      // Wait 2000ms then close
       setTimeout(() => {
-        setSuccess(false);
         onClose();
       }, 2000);
-    } catch (err) {
-      console.error("❌ Submission error:", err.message);
-      alert("Failed to submit feedback: " + err.message);
-    } finally {
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      setError(error.message || "Failed to submit feedback. Please try again.");
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center bg-color-black50 overflow-auto min-h-screen py-8 px-4">
-      <div className="bg-color-w w-full max-w-md p-4 sm:p-6 rounded-xl shadow-xl relative self-start">
+    <div className="fixed inset-0 frosted-backdrop flex items-center justify-center z-50">
+      {/* Show loading overlay when submitting */}
+      {loading && !success && (
+        <div className="absolute inset-0 frosted-backdrop flex items-center justify-center z-10">
+          <div className="text-center flex flex-col items-center justify-center">
+            <div className="loader-large mx-auto"></div>
+            <p className="text-white mt-4 font-montserrat">
+              Submitting feedback...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Show success message */}
+      {success && (
+        <div className="absolute inset-0 frosted-backdrop flex items-center justify-center z-10">
+          <div className="text-white text-center font-montserrat flex flex-col items-center justify-center">
+            <div className="text-6xl mb-4">✓</div>
+            <p className="text-xl">Feedback submitted successfully!</p>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={`bg-neutral-900 w-full max-w-[90%] h-full max-h-[92%] p-6 sm:p-8 rounded-2xl shadow-2xl border border-neutral-700 relative flex flex-col ${
+          loading || success ? "opacity-0" : "opacity-100"
+        } transition-opacity duration-200`}
+      >
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-3 text-lg cursor-pointer scale-150 px-2 text-black"
+          className="absolute top-3 right-4 text-gray-400 hover:text-white transition text-2xl cursor-pointer"
         >
           ×
         </button>
+        <div className="flex flex-row">
+          {/* Form */}
+          <div className="flex flex-col md:w-[20%] mr-8">
+            <h2 className="text-xl sm:text-2xl text-center font-bold mb-6 text-white tracking-tight">
+              Submit Feedback
+            </h2>
+            {/* Form Section - smaller */}
+            <form
+              onSubmit={handleSubmit}
+              className="w-full flex-shrink-0 space-y-6 overflow-y-auto p-1"
+            >
+              <input
+                type="text"
+                placeholder="Your Name (optional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-2.5 rounded-lg bg-neutral-800 border border-neutral-700 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white"
+              />
 
-        {loading && (
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl">
-            <div className="loader border-4 border-blue-500 border-t-transparent rounded-full w-8 h-8 animate-spin"></div>
-          </div>
-        )}
+              <input
+                type="text"
+                placeholder="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="w-full p-2.5 rounded-lg bg-neutral-800 border border-neutral-700 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white"
+              />
 
-        {success && (
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl">
-            <div className="text-green-400 font-semibold text-base sm:text-lg bg-gray-800/70 rounded-full px-5 py-4">
-              ✅ Feedback submitted!
-            </div>
-          </div>
-        )}
+              <textarea
+                placeholder="Description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                className="w-full p-2.5 rounded-lg bg-neutral-800 border border-neutral-700 min-h-[120px] text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white"
+              />
 
-        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black">
-          Submit Feedback
-        </h2>
+              <input
+                type="email"
+                placeholder="Email (optional)"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-2.5 rounded-lg bg-neutral-800 border border-neutral-700 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white"
+              />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full p-2 border rounded text-sm sm:text-base text-black placeholder:text-gray-400"
-          />
-          <textarea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            className="w-full p-2 border rounded min-h-[100px] text-sm sm:text-base text-black placeholder:text-gray-400"
-          />
-          <input
-            type="email"
-            placeholder="Email (optional)"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border rounded text-sm sm:text-base text-black placeholder:text-gray-400"
-          />
-          {email && !/\S+@\S+\.\S+/.test(email) && (
-            <p className="text-red-600 text-sm -mt-3">
-              Please enter a valid email.
-            </p>
-          )}
-          <select
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value)}
-            className="w-full p-2 border rounded text-sm sm:text-base text-black"
-          >
-            <option value="low">Low Severity</option>
-            <option value="medium">Medium Severity</option>
-            <option value="high">High Severity</option>
-          </select>
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value)}
+                className="w-full p-2.5 rounded-lg bg-neutral-800 border border-neutral-700 text-sm sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-white"
+              >
+                <option value="low">Low Severity</option>
+                <option value="medium">Medium Severity</option>
+                <option value="high">High Severity</option>
+              </select>
 
-          {editing ? (
-            <ScreenshotEditor
-              screenshot={screenshot}
-              onSave={(editedDataUrl) => {
-                setScreenshot(editedDataUrl);
-                setEditing(false);
-              }}
-              onCancel={() => setEditing(false)}
-            />
-          ) : (
-            screenshot && (
-              <div>
-                <label className="block mb-1 font-medium text-sm sm:text-base text-black">
-                  Screenshot Preview
-                </label>
-                <img
-                  src={screenshot}
-                  alt="Screenshot"
-                  className="w-full rounded border"
-                />
-                <button
-                  type="button"
-                  onClick={() => setEditing(true)}
-                  className="mt-2 px-3 py-1 bg-gray-200 rounded text-sm border border-gray-400 cursor-pointer text-black"
-                >
-                  Edit Screenshot
-                </button>
+              {/* Browser Info */}
+              <div className="text-xs sm:text-sm text-gray-400 py-8">
+                {browserInfoLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading browser info...</span>
+                  </div>
+                ) : (
+                  <>
+                    <p>
+                      <strong className="text-gray-300">URL:</strong>{" "}
+                      {window.location.href}
+                    </p>
+                    <p>
+                      <strong className="text-gray-300">IP:</strong>{" "}
+                      {browserInfo.ip}
+                    </p>
+                    <p>
+                      <strong className="text-gray-300">Location:</strong>{" "}
+                      {browserInfo.location}
+                    </p>
+                    <p>
+                      <strong className="text-gray-300">Browser:</strong>{" "}
+                      {browserInfo.browser}
+                    </p>
+                    <p>
+                      <strong className="text-gray-300">OS:</strong>{" "}
+                      {browserInfo.os}
+                    </p>
+                  </>
+                )}
               </div>
-            )
-          )}
 
-          <div className="text-xs sm:text-sm text-color-gray600 mt-2">
-            <p>
-              <strong>URL:</strong> {window.location.href}
-            </p>
-            <p>
-              <strong>Browser:</strong> {browserInfo.browser}
-            </p>
-            <p>
-              <strong>OS:</strong> {browserInfo.os}
-            </p>
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || success}
+                className="w-full py-3 rounded-lg text-white font-medium bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 transition cursor-pointer"
+              >
+                Submit
+              </button>
+            </form>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || success}
-            className="w-full py-2 rounded text-white submit-button bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base cursor-pointer"
-          >
-            Submit
-          </button>
-        </form>
+          {/* Screenshot Section */}
+          <div className="flex flex-col flex-1">
+            {editing ? (
+              <>
+                {/* Large Screenshot Editor */}
+                <div className="flex-1 overflow-auto">
+                  <ScreenshotEditor
+                    screenshot={screenshot}
+                    onSave={(editedDataUrl) => {
+                      setScreenshot(editedDataUrl);
+                      setEditing(false);
+                    }}
+                    onCancel={() => setEditing(false)}
+                  />
+                </div>
+              </>
+            ) : (
+              screenshot && (
+                <>
+                  <label className="block mb-9 text-center font-medium text-sm sm:text-base text-gray-300">
+                    Screenshot Preview
+                  </label>
+                  <img
+                    src={screenshot}
+                    alt="Screenshot"
+                    className="w-full h-auto max-h-[80vh] object-contain rounded-lg border border-neutral-700"
+                  />
+                  <div className="flex justify-center mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(true)}
+                      className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-sm border border-neutral-600 text-white"
+                    >
+                      Edit Screenshot
+                    </button>
+                  </div>
+                </>
+              )
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
