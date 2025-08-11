@@ -12,6 +12,8 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [animationClass, setAnimationClass] = useState("");
+  const [shouldRenderEditor, setShouldRenderEditor] = useState(false);
   const [error, setError] = useState("");
 
   // Browser info state + loading flag
@@ -38,6 +40,23 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
       }
     })();
   }, []);
+
+  // Handle screenshot editor animations
+  useEffect(() => {
+    if (editing) {
+      setShouldRenderEditor(true);
+      // Start fade-in animation after render
+      setTimeout(() => setAnimationClass("animate-fade-in"), 10);
+    } else if (shouldRenderEditor) {
+      // Start fade-out animation
+      setAnimationClass("animate-fade-out");
+      // Remove from DOM after animation completes
+      setTimeout(() => {
+        setShouldRenderEditor(false);
+        setAnimationClass("");
+      }, 400); // Match animation duration
+    }
+  }, [editing, shouldRenderEditor]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -129,7 +148,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
       )}
 
       <div
-        className={`bg-neutral-900 w-full max-w-[90%] h-full max-h-[92%] p-6 sm:p-8 rounded-2xl shadow-2xl border border-neutral-700 relative flex flex-col ${
+        className={`bg-neutral-900 w-full max-w-[90%] h-full max-h-[87%] lg:max-h-[88%] lg:h-[88%] p-6 sm:p-8 rounded-2xl shadow-2xl border border-neutral-700 relative flex flex-col overflow-hidden ${
           loading || success ? "opacity-0" : "opacity-100"
         } transition-opacity duration-200`}
       >
@@ -140,16 +159,22 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
         >
           ×
         </button>
-        <div className="flex flex-row">
-          {/* Form */}
-          <div className="flex flex-col md:w-[20%] mr-8">
+        <div className="flex flex-col lg:flex-row relative overflow-hidden">
+          {/* Form - Animated with translateX */}
+          <div
+            className={`flex flex-col lg:w-[20%] lg:min-w-[300px] lg:max-w-[400px] mr-8 flex-shrink transition-all duration-500 ease-in-out lg:absolute lg:top-0 lg:left-0 lg:h-full ${
+              editing
+                ? "lg:-translate-x-[120%] opacity-0 pointer-events-none"
+                : "lg:translate-x-0 lg:relative opacity-100"
+            }`}
+          >
             <h2 className="text-xl sm:text-2xl text-center font-bold mb-6 text-white tracking-tight">
               Submit Feedback
             </h2>
             {/* Form Section - smaller */}
             <form
               onSubmit={handleSubmit}
-              className="w-full flex-shrink-0 space-y-6 overflow-y-auto p-1"
+              className="w-full space-y-6 overflow-hidden p-1"
             >
               <input
                 type="text"
@@ -245,8 +270,8 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
 
           {/* Screenshot Section */}
           <div className="flex flex-col flex-1">
-            {editing ? (
-              <>
+            {shouldRenderEditor && (
+              <div className={animationClass}>
                 {/* Large Screenshot Editor */}
                 <div className="flex-1 overflow-auto">
                   <ScreenshotEditor
@@ -258,29 +283,28 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
                     onCancel={() => setEditing(false)}
                   />
                 </div>
+              </div>
+            )}
+            {!editing && screenshot && (
+              <>
+                <label className="block mb-9 text-center font-medium text-sm sm:text-base text-gray-300">
+                  Screenshot Preview
+                </label>
+                <img
+                  src={screenshot}
+                  alt="Screenshot"
+                  className="w-full h-auto max-h-[80vh] object-contain rounded-lg border border-neutral-700"
+                />
+                <div className="flex justify-center mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-sm border border-neutral-600 text-white cursor-pointer"
+                  >
+                    Edit Screenshot
+                  </button>
+                </div>
               </>
-            ) : (
-              screenshot && (
-                <>
-                  <label className="block mb-9 text-center font-medium text-sm sm:text-base text-gray-300">
-                    Screenshot Preview
-                  </label>
-                  <img
-                    src={screenshot}
-                    alt="Screenshot"
-                    className="w-full h-auto max-h-[80vh] object-contain rounded-lg border border-neutral-700"
-                  />
-                  <div className="flex justify-center mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(true)}
-                      className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-sm border border-neutral-600 text-white"
-                    >
-                      Edit Screenshot
-                    </button>
-                  </div>
-                </>
-              )
             )}
           </div>
         </div>

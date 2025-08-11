@@ -265,8 +265,8 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
       {/* Screenshot Canvas */}
       <div
         ref={containerRef}
-        className="w-full flex-1 overflow-hidden flex justify-center rounded-lg border-2 bg-black/5"
-        style={{ maxHeight: "80vh" }}
+        className="w-full flex-1 overflow-hidden flex justify-center rounded-lg bg-black/5"
+        style={{ maxHeight: "68vh" }}
       >
         <canvas ref={canvasRef} className="block" />
       </div>
