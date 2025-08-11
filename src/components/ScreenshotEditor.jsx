@@ -32,7 +32,7 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
       const imgHeight = img.height;
 
       const containerWidth = containerRef.current.offsetWidth;
-      const containerHeight = window.innerHeight * 0.8; // 80% of viewport
+      const containerHeight = window.innerHeight * 0.68; // 78% of viewport
 
       const scaleX = containerWidth / imgWidth;
       const scaleY = containerHeight / imgHeight;
@@ -265,10 +265,13 @@ const ScreenshotEditor = ({ screenshot, onSave, onCancel }) => {
       {/* Screenshot Canvas */}
       <div
         ref={containerRef}
-        className="w-full flex-1 overflow-hidden flex justify-center rounded-lg bg-black/5"
-        style={{ maxHeight: "68vh" }}
+        className="w-full flex-1 flex justify-center items-center rounded-lg bg-black/5"
+        style={{ height: "68vh" }}
       >
-        <canvas ref={canvasRef} className="block" />
+        <canvas
+          ref={canvasRef}
+          className="block max-w-full max-h-full object-contain"
+        />
       </div>
 
       {/* Bottom row: Save, Cancel (and Crop Save if active) */}

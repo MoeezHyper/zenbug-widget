@@ -1,12 +1,15 @@
 import { useState } from "react";
 import FeedbackModal from "./FeedbackModal";
+import startWebpageRecording from "../utils/captureVideo";
 import { captureScreenshot } from "../utils/captureScreenshot";
 import bugIcon from "../assets/bug.svg";
 
 const Widget = ({ apiKey: propKey }) => {
   const [open, setOpen] = useState(false);
   const [screenshot, setScreenshot] = useState(null);
+  const [video, setVideo] = useState(null); // { url, blob, mimeType }
   const [loading, setLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   const API_KEY =
     propKey ||
@@ -26,16 +29,33 @@ const Widget = ({ apiKey: propKey }) => {
     try {
       setLoading(true);
       const shot = await captureScreenshot();
-      if (shot) {
-        setScreenshot(shot);
-        setOpen(true);
-      } else {
-        console.error("Screenshot capture failed.");
-      }
+      if (!shot) throw new Error("Screenshot capture failed.");
+      setScreenshot(shot);
+      setVideo(null);
+      setOpen(true);
     } catch (err) {
       console.error("Error capturing screenshot:", err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecordVideo = async () => {
+    try {
+      // Keep modal mounted to preserve form state; just hide it during recording
+      setIsRecording(true);
+      // Small delay to ensure hidden styles apply before capture
+      await new Promise((r) => setTimeout(r, 100));
+
+      const result = await startWebpageRecording();
+      // After recording finishes, set video but keep screenshot in memory.
+      // Screenshot will be hidden while video exists and shown again if video is removed.
+      setVideo(result);
+      // Reveal modal with video preview
+      setIsRecording(false);
+    } catch (err) {
+      console.error("Screen recording failed:", err);
+      setIsRecording(false);
     }
   };
 
@@ -61,9 +81,15 @@ const Widget = ({ apiKey: propKey }) => {
           apiKey={API_KEY}
           screenshot={screenshot}
           setScreenshot={setScreenshot}
+          video={video}
+          setVideo={setVideo}
+          onRecordVideo={handleRecordVideo}
+          isRecording={isRecording}
           onClose={() => {
             setOpen(false);
             setScreenshot(null);
+            setVideo(null);
+            setIsRecording(false);
           }}
         />
       )}

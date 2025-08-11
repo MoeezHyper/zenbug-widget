@@ -2,7 +2,34 @@ import { useState, useEffect } from "react";
 import { getBrowserMetadata } from "../utils/getBrowserMetadata";
 import ScreenshotEditor from "./ScreenshotEditor";
 
-const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
+const FeedbackModal = ({
+  apiKey,
+  screenshot,
+  setScreenshot,
+  video,
+  setVideo,
+  onRecordVideo,
+  isRecording = false,
+  onClose,
+}) => {
+  // Derive a project name from the current hostname (not shown to user)
+  const deriveProjectName = () => {
+    try {
+      const host = (window.location.hostname || "").toLowerCase();
+      if (!host) return "";
+      if (host === "localhost") return "local host"; // as requested example
+      // If it's an IP, just return it
+      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return host;
+      // Split into parts; prefer the second-level label (last non-TLD)
+      const parts = host.split(".").filter(Boolean);
+      if (parts.length === 1) return parts[0].replace(/-/g, " ");
+      // Common case like google.com or app.example.com -> pick example or google
+      const candidate = parts[parts.length - 2] || parts[0];
+      return candidate.replace(/-/g, " ");
+    } catch {
+      return "";
+    }
+  };
   // Feedback form states
   const [name, setName] = useState(""); // ✅ New name field
   const [title, setTitle] = useState("");
@@ -58,6 +85,23 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
     }
   }, [editing, shouldRenderEditor]);
 
+  // Disable body scrolling when modal is open, but restore when recording
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+
+    if (isRecording) {
+      // Restore scrolling during recording
+      document.body.style.overflow = originalOverflow;
+    } else {
+      // Disable scrolling when modal is visible
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isRecording]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -66,8 +110,9 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
       return;
     }
 
-    if (!screenshot) {
-      setError("Screenshot is required.");
+    // Require either a screenshot or a video
+    if (!screenshot && !video) {
+      setError("Attach a screenshot or record a video.");
       return;
     }
 
@@ -80,6 +125,9 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
       formData.append("description", description);
       formData.append("severity", severity);
       formData.append("status", "open");
+      // Auto project name (not displayed to user)
+      const projectName = deriveProjectName();
+      if (projectName) formData.append("projectName", projectName);
       formData.append(
         "metadata",
         JSON.stringify({
@@ -94,11 +142,21 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
       if (name.trim()) formData.append("name", name.trim());
       if (email.trim()) formData.append("email", email);
 
-      // Convert screenshot data URL to blob
-      const response = await fetch(screenshot);
-      const blob = await response.blob();
-      formData.append("screenshot", blob, "screenshot.png");
-
+      if (video?.blob) {
+        // Attach video if available
+        formData.append(
+          "video",
+          video.blob,
+          `recording.${
+            (video.mimeType || "video/webm").split("/")[1] || "webm"
+          }`
+        );
+      } else if (screenshot) {
+        // Convert screenshot data URL to blob
+        const response = await fetch(screenshot);
+        const blob = await response.blob();
+        formData.append("screenshot", blob, "screenshot.png");
+      }
       const apiUrl = "http://localhost:5000/api";
       const res = await fetch(`${apiUrl}/feedback`, {
         method: "POST",
@@ -124,7 +182,11 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 frosted-backdrop flex items-center justify-center z-50">
+    <div
+      className={`fixed inset-0 frosted-backdrop flex items-center justify-center z-50 ${
+        isRecording ? "opacity-0 pointer-events-none" : "opacity-100"
+      }`}
+    >
       {/* Show loading overlay when submitting */}
       {loading && !success && (
         <div className="absolute inset-0 frosted-backdrop flex items-center justify-center z-10">
@@ -159,7 +221,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
         >
           ×
         </button>
-        <div className="flex flex-col lg:flex-row relative overflow-hidden">
+        <div className="flex max-lg:flex-col flex-row relative overflow-hidden max-lg:overflow-auto">
           {/* Form - Animated with translateX */}
           <div
             className={`flex flex-col lg:w-[20%] lg:min-w-[300px] lg:max-w-[400px] mr-8 flex-shrink transition-all duration-500 ease-in-out lg:absolute lg:top-0 lg:left-0 lg:h-full ${
@@ -220,7 +282,7 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
               </select>
 
               {/* Browser Info */}
-              <div className="text-xs sm:text-sm text-gray-400 py-8">
+              <div className="text-xs sm:text-sm text-gray-400 py-6">
                 {browserInfoLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -268,9 +330,9 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
             </form>
           </div>
 
-          {/* Screenshot Section */}
+          {/* Media Section */}
           <div className="flex flex-col flex-1">
-            {shouldRenderEditor && (
+            {shouldRenderEditor && screenshot && (
               <div className={animationClass}>
                 {/* Large Screenshot Editor */}
                 <div className="flex-1 overflow-auto">
@@ -285,7 +347,33 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
                 </div>
               </div>
             )}
-            {!editing && screenshot && (
+            {!editing && video && (
+              <>
+                <label className="block mb-3 text-center font-medium text-sm sm:text-base text-gray-300">
+                  Video Preview
+                </label>
+                <video
+                  controls
+                  className="w-[87%] h-auto max-h-[70vh] rounded-lg border border-neutral-700 mx-auto"
+                  src={video.url}
+                />
+                <div className="flex justify-center mt-4 gap-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        if (video?.url) URL.revokeObjectURL(video.url);
+                      } catch {}
+                      setVideo(null);
+                    }}
+                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-sm border border-neutral-600 text-white cursor-pointer"
+                  >
+                    Remove Video
+                  </button>
+                </div>
+              </>
+            )}
+            {!editing && !video && screenshot && (
               <>
                 <label className="block mb-9 text-center font-medium text-sm sm:text-base text-gray-300">
                   Screenshot Preview
@@ -293,15 +381,22 @@ const FeedbackModal = ({ apiKey, screenshot, setScreenshot, onClose }) => {
                 <img
                   src={screenshot}
                   alt="Screenshot"
-                  className="w-full h-auto max-h-[80vh] object-contain rounded-lg border border-neutral-700"
+                  className="w-[96%] max-h-[66vh] object-contain rounded-lg border border-neutral-700"
                 />
-                <div className="flex justify-center mt-4">
+                <div className="flex justify-center mt-4 gap-6">
                   <button
                     type="button"
                     onClick={() => setEditing(true)}
                     className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-sm border border-neutral-600 text-white cursor-pointer"
                   >
                     Edit Screenshot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRecordVideo}
+                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-sm border border-neutral-600 text-white cursor-pointer"
+                  >
+                    Record Video
                   </button>
                 </div>
               </>
