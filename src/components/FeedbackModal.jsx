@@ -331,7 +331,7 @@ const FeedbackModal = ({
           </div>
 
           {/* Media Section */}
-          <div className="flex flex-col flex-1">
+          <div className="flex flex-col flex-1 items-center">
             {shouldRenderEditor && screenshot && (
               <div className={animationClass}>
                 {/* Large Screenshot Editor */}
