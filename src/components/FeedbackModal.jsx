@@ -157,7 +157,7 @@ const FeedbackModal = ({
         const blob = await response.blob();
         formData.append("screenshot", blob, "screenshot.png");
       }
-      const apiUrl = "http://localhost:5000/api";
+      const apiUrl = "https://zenbug-admin-panel.vercel.app/api";
       const res = await fetch(`${apiUrl}/feedback`, {
         method: "POST",
         headers: { Authorization: `ApiKey ${apiKey}` },
@@ -331,7 +331,9 @@ const FeedbackModal = ({
           </div>
 
           {/* Media Section */}
-          <div className="flex flex-col flex-1 items-center">
+          <div
+            className={`flex flex-col flex-1 ${!editing ? "items-center" : ""}`}
+          >
             {shouldRenderEditor && screenshot && (
               <div className={animationClass}>
                 {/* Large Screenshot Editor */}
