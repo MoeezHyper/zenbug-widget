@@ -125,9 +125,10 @@ const FeedbackModal = ({
       formData.append("description", description);
       formData.append("severity", severity);
       formData.append("status", "open");
-      // Auto project name (not displayed to user)
+      // Auto project name (not displayed to user) - now as projects array
       const projectName = deriveProjectName();
-      if (projectName) formData.append("projectName", projectName);
+      if (projectName)
+        formData.append("projects", JSON.stringify([projectName]));
       formData.append(
         "metadata",
         JSON.stringify({
