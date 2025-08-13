@@ -293,20 +293,20 @@ const FeedbackModal = ({
                       {window.location.href}
                     </p>
                     <p>
-                      <strong className="text-gray-300">IP:</strong>{" "}
-                      {browserInfo.ip}
-                    </p>
-                    <p>
-                      <strong className="text-gray-300">Location:</strong>{" "}
-                      {browserInfo.location}
-                    </p>
-                    <p>
                       <strong className="text-gray-300">Browser:</strong>{" "}
                       {browserInfo.browser}
                     </p>
                     <p>
                       <strong className="text-gray-300">OS:</strong>{" "}
                       {browserInfo.os}
+                    </p>
+                    <p>
+                      <strong className="text-gray-300">IP:</strong>{" "}
+                      {browserInfo.ip}
+                    </p>
+                    <p>
+                      <strong className="text-gray-300">Location:</strong>{" "}
+                      {browserInfo.location}
                     </p>
                   </>
                 )}
