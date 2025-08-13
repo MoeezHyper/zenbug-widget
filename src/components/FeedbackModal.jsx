@@ -192,9 +192,7 @@ const FeedbackModal = ({
         <div className="absolute inset-0 frosted-backdrop flex items-center justify-center z-10">
           <div className="text-center flex flex-col items-center justify-center">
             <div className="loader-large mx-auto"></div>
-            <p className="text-white mt-4 font-montserrat">
-              Submitting feedback...
-            </p>
+            <p className="text-white mt-4 ">Submitting feedback...</p>
           </div>
         </div>
       )}
@@ -202,7 +200,7 @@ const FeedbackModal = ({
       {/* Show success message */}
       {success && (
         <div className="absolute inset-0 frosted-backdrop flex items-center justify-center z-10">
-          <div className="text-white text-center font-montserrat flex flex-col items-center justify-center">
+          <div className="text-white text-center flex flex-col items-center justify-center">
             <div className="text-6xl mb-4">✓</div>
             <p className="text-xl">Feedback submitted successfully!</p>
           </div>

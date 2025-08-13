@@ -70,7 +70,7 @@ const Widget = ({ apiKey: propKey }) => {
         className={`${
           loading
             ? "hidden"
-            : "fixed font-montserrat bottom-4 right-4 z-50 flex items-center cursor-pointer glow-btn disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3"
+            : "fixed bottom-4 right-4 z-50 flex items-center cursor-pointer glow-btn disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-3"
         }`}
       >
         <img src={bugIcon} alt="bug" className="size-5 mr-1" /> Feedback
