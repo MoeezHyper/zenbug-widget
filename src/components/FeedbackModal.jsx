@@ -280,7 +280,7 @@ const FeedbackModal = ({
               </select>
 
               {/* Browser Info */}
-              <div className="text-xs sm:text-sm text-gray-400 py-6">
+              <div className="text-xs sm:text-sm text-gray-400 py-4">
                 {browserInfoLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
