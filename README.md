@@ -1,4 +1,3 @@
-```
 # 🧩 ZenBug – Chrome Extension
 
 ZenBug Chrome Extension makes it simple for users to capture screenshots, record videos, annotate issues, and submit bug reports directly from the browser. Reports are sent to the ZenBug backend with optional metadata (browser, OS, viewport, current URL).
